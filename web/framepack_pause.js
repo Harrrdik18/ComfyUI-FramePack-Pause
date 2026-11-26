@@ -35,7 +35,13 @@ function progressText(state) {
 
 function toast(kind, title, detail) {
     const manager = app.extensionManager && app.extensionManager.toast;
-    if (manager && typeof manager.add === "function") {
+    if (!manager) return;
+
+    // Prefer the current ComfyUI toast API, while retaining compatibility
+    // with older frontends that expose only the legacy add() method.
+    if (typeof manager[kind] === "function") {
+        manager[kind](title, { description: detail, duration: 3500 });
+    } else if (typeof manager.add === "function") {
         manager.add({ severity: kind, summary: title, detail, life: 3500 });
     }
 }
