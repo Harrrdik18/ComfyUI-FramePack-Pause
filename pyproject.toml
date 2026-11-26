@@ -1,7 +1,13 @@
 [project]
 name = "comfyui-framepack-pause"
-version = "0.1.0"
-description = "Cooperative pause/resume controls for Kijai's ComfyUI FramePack sampler"
+version = "0.2.0"
+description = "Cooperative pause/resume and whole-video progress for Kijai's ComfyUI FramePack sampler"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
+keywords = ["comfyui", "framepack", "video-generation", "pause", "progress"]
+
+[project.urls]
+Homepage = "https://github.com/Harrrdik18/ComfyUI-FramePack-Pause"
+Repository = "https://github.com/Harrrdik18/ComfyUI-FramePack-Pause"
+Issues = "https://github.com/Harrrdik18/ComfyUI-FramePack-Pause/issues"
