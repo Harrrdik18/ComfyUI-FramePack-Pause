@@ -38,10 +38,15 @@ def patch_sampler_module(module: ModuleType) -> bool:
 
         def iterate():
             with CONTROLLER.sampler_loop(total_steps):
-                for index in original(*args, **kwargs):
-                    # The previous iteration has completed before the sampler
-                    # requests another item. Wait here, retaining live tensors.
+                iterator = iter(original(*args, **kwargs))
+                while True:
+                    # Wait before advancing tqdm/range, so progress isn't
+                    # incremented until the next model evaluation can proceed.
                     CONTROLLER.wait_if_paused()
+                    try:
+                        index = next(iterator)
+                    except StopIteration:
+                        return
                     if isinstance(index, int):
                         CONTROLLER.set_step(index + 1, total_steps)
                     yield index
