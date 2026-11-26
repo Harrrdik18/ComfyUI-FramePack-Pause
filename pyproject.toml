@@ -1,0 +1,7 @@
+[project]
+name = "comfyui-framepack-pause"
+version = "0.1.0"
+description = "Cooperative pause/resume controls for Kijai's ComfyUI FramePack sampler"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
