@@ -1,4 +1,4 @@
-"""Local ComfyUI HTTP endpoints for the pause controller."""
+"""Local ComfyUI HTTP endpoints for pause and whole-video progress status."""
 from __future__ import annotations
 
 import logging
@@ -8,19 +8,37 @@ from server import PromptServer
 
 try:
     from .pause_controller import CONTROLLER
-    from .patcher import is_patched, patched_modules
+    from .patcher import (
+        is_pipeline_patched,
+        is_sampler_patched,
+        patched_modules,
+        patch_registered_framepack_nodes,
+    )
 except ImportError:
     from pause_controller import CONTROLLER
-    from patcher import is_patched, patched_modules
+    from patcher import (
+        is_pipeline_patched,
+        is_sampler_patched,
+        patched_modules,
+        patch_registered_framepack_nodes,
+    )
 
 LOGGER = logging.getLogger("ComfyUI-FramePack-Pause")
 _REGISTERED = False
 
 
 def _status_payload() -> dict:
+    patched_nodes = patch_registered_framepack_nodes()
+    state = CONTROLLER.snapshot()
+    sampler_patched = is_sampler_patched()
+    pipeline_patched = is_pipeline_patched()
     return {
-        **CONTROLLER.snapshot(),
-        "patched": is_patched(),
+        **state,
+        "patched": sampler_patched,
+        "sampler_patched": sampler_patched,
+        "pipeline_patched": pipeline_patched,
+        "node_patched": bool(patched_nodes),
+        "patched_node_classes": patched_nodes,
         "patched_modules": patched_modules(),
     }
 
@@ -29,7 +47,6 @@ def register_routes() -> None:
     global _REGISTERED
     if _REGISTERED:
         return
-
     routes = PromptServer.instance.routes
 
     async def pause(request: web.Request) -> web.Response:
