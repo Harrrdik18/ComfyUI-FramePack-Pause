@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible FramePack Pause issue
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Remove private prompts, source images, generated media, personal paths and tokens from logs before posting."
+  - type: input
+    id: comfy
+    attributes:
+      label: ComfyUI and frontend versions
+      placeholder: "ComfyUI Desktop version / frontend version"
+    validations:
+      required: true
+  - type: input
+    id: wrapper
+    attributes:
+      label: FramePackWrapper commit or version
+    validations:
+      required: true
+  - type: input
+    id: extension
+    attributes:
+      label: FramePack Pause commit
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and VRAM
+      placeholder: "e.g. RTX 3060 8GB"
+    validations:
+      required: true
+  - type: dropdown
+    id: failure
+    attributes:
+      label: What failed?
+      options:
+        - Custom node failed to load
+        - One or more hooks not detected
+        - Progress does not advance correctly
+        - Pause does not take effect
+        - Resume does not continue
+        - ComfyUI interrupt while paused
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include duration, steps, latent window size and sampler settings where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: Status endpoint JSON
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant redacted logs
+      render: text
