@@ -101,14 +101,19 @@ The tests do not require ComfyUI, PyTorch or a GPU. GitHub Actions runs the unit
 
 ### Manual CUDA test checklist
 
-1. Restart ComfyUI and open the FramePack Pause sidebar.
-2. Verify `sampler_patched`, `pipeline_patched` and `node_patched` are all `true` in `/framepack-pause/status`.
-3. Run a short FramePack generation with a small number of steps and a short output duration.
-4. Confirm denoising progress advances across section boundaries instead of resetting to the first section's percentage.
-5. Click Pause during denoising; wait 10 seconds and confirm the percentage/step remains unchanged.
-6. Click Resume; confirm the same generation continues and completes.
-7. Start another generation and use ComfyUI's normal Interrupt while paused; confirm it exits instead of remaining blocked.
-8. Confirm the next queued FramePack generation is not left paused after the interrupted job.
+For Windows PowerShell, the repository includes:
+
+- `scripts/test-api.ps1` — verifies all hook flags and performs an idle pause/resume API smoke test.
+- `scripts/watch-status.ps1` — prints live aggregate percentage, section, step and hook status while generating.
+
+Run them from the repository directory:
+
+```powershell
+.\\scripts\\test-api.ps1
+.\\scripts\\watch-status.ps1
+```
+
+The full Windows + CUDA acceptance procedure, including expected outcomes and the exact settings to record, is in [docs/manual-test.md](docs/manual-test.md). The maintainer has confirmed all three hook flags on one Windows installation, but the live GPU acceptance checklist remains open in [issue #1](https://github.com/Harrrdik18/ComfyUI-FramePack-Pause/issues/1).
 
 GPU-backed manual validation is required before tagging a stable release.
 
@@ -128,7 +133,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Keep the integration isolated from upstr
 - [x] Clear stale pause state after completion, failure or shutdown
 - [x] Unit tests and CI workflow
 - [x] Document checkpoint/VRAM feasibility and limitations
-- [ ] Run end-to-end GPU tests on Windows + CUDA and verify pause/resume, progress and interrupt behaviour
+- [ ] Run end-to-end GPU tests on Windows + CUDA and verify pause/resume, progress and interrupt behaviour ([release gate #1](https://github.com/Harrrdik18/ComfyUI-FramePack-Pause/issues/1))
 - [ ] Verify compatibility against multiple ComfyUI frontend and FramePackWrapper revisions
 
 ### Checkpoint and VRAM-offload research
