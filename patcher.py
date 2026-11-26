@@ -1,4 +1,4 @@
-"""Narrow runtime adapter for Kijai's FlowMatchUniPC sampler."""
+"""Runtime adapters for Kijai's FramePack sampler and node classes."""
 from __future__ import annotations
 
 import importlib.abc
@@ -11,8 +11,10 @@ from typing import Any
 
 try:
     from .pause_controller import CONTROLLER
+    from .node_hook import patch_framepack_node_module
 except ImportError:
     from pause_controller import CONTROLLER
+    from node_hook import patch_framepack_node_module
 
 LOGGER = logging.getLogger("ComfyUI-FramePack-Pause")
 MODULE_SUFFIX = "diffusers_helper.k_diffusion.uni_pc_fm"
@@ -38,15 +40,10 @@ def patch_sampler_module(module: ModuleType) -> bool:
 
         def iterate():
             with CONTROLLER.sampler_loop(total_steps):
-                iterator = iter(original(*args, **kwargs))
-                while True:
-                    # Wait before advancing tqdm/range, so progress isn't
-                    # incremented until the next model evaluation can proceed.
+                # Fetch each step lazily; after yielding a step, the next call
+                # waits before the following step reaches the sampler.
+                for index in original(*args, **kwargs):
                     CONTROLLER.wait_if_paused()
-                    try:
-                        index = next(iterator)
-                    except StopIteration:
-                        return
                     if isinstance(index, int):
                         CONTROLLER.set_step(index + 1, total_steps)
                     yield index
@@ -80,14 +77,20 @@ class _PatchingLoader(importlib.abc.Loader):
     def exec_module(self, module: ModuleType) -> None:
         self._wrapped_loader.exec_module(module)
         patch_sampler_module(module)
+        patch_framepack_node_module(module)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._wrapped_loader, name)
 
 
-class _SamplerImportFinder(importlib.abc.MetaPathFinder):
+class _PatchingFinder(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname: str, path=None, target=None):
-        if fullname != MODULE_SUFFIX and not fullname.endswith("." + MODULE_SUFFIX):
+        is_sampler = fullname == MODULE_SUFFIX or fullname.endswith("." + MODULE_SUFFIX)
+        # Kijai's custom node imports the FramePackSampler classes from its
+        # package's nodes.py; inspect modules named "nodes" without changing
+        # unrelated modules unless they actually export FramePackSampler.
+        is_node_module = fullname == "nodes" or fullname.endswith(".nodes")
+        if not (is_sampler or is_node_module):
             return None
         spec = importlib.machinery.PathFinder.find_spec(fullname, path)
         if spec is None or spec.loader is None:
@@ -98,10 +101,11 @@ class _SamplerImportFinder(importlib.abc.MetaPathFinder):
 
 
 def install_import_hook() -> None:
-    """Patch a loaded sampler and intercept future imports, idempotently."""
-    for name, module in tuple(sys.modules.items()):
-        if (name == MODULE_SUFFIX or name.endswith("." + MODULE_SUFFIX)) and isinstance(module, ModuleType):
+    """Patch loaded modules and intercept future sampler/node imports."""
+    for module in tuple(sys.modules.values()):
+        if isinstance(module, ModuleType):
             patch_sampler_module(module)
-    if not any(isinstance(item, _SamplerImportFinder) for item in sys.meta_path):
-        sys.meta_path.insert(0, _SamplerImportFinder())
-        LOGGER.info("FramePack pause import hook installed")
+            patch_framepack_node_module(module)
+    if not any(isinstance(item, _PatchingFinder) for item in sys.meta_path):
+        sys.meta_path.insert(0, _PatchingFinder())
+        LOGGER.info("FramePack Pause import hooks installed")
